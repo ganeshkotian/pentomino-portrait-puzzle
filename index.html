@@ -114,6 +114,8 @@
     <span class="statinfo">Level <b id="lvl">1</b> · Left <b id="left">0</b></span>
     <button class="btn" id="fh" title="Flip horizontal">FH ⇋</button>
     <button class="btn" id="fv" title="Flip vertical">FV ⇕</button>
+    <button class="btn" id="revert" title="Undo last placement">Revert ↶</button>
+    <button class="btn" id="hint" title="Place one piece correctly">Hint 💡</button>
     <button class="btn" id="reset">Reset</button>
     <button class="btn" id="skip" title="Skip to next level">Skip ⏭</button>
     <span class="scale-group">
@@ -260,6 +262,7 @@ let cellMap = {}, holeSet = new Set(), occupied = new Set(), lastW = 0;
 let selectedPiece = null;
 let suppressBoardClick = false;
 let won = false;
+let placedStack = [];          // order pieces were placed, for Revert
 let cellColor = null;          // per-cell average color of the current image (for win check)
 const key = (r,c) => r+'_'+c;
 
@@ -314,7 +317,7 @@ function build(){
   computeSize();
   lastW = window.innerWidth;
   boardEl.innerHTML = ''; trayEl.innerHTML = '';
-  cellMap = {}; holeSet = new Set(); occupied = new Set(); selectedPiece = null; won = false;
+  cellMap = {}; holeSet = new Set(); occupied = new Set(); selectedPiece = null; won = false; placedStack = [];
   const cf = document.getElementById('confetti'); if (cf) cf.remove();
   boardEl.style.width = boardW + 'px';
   boardEl.style.height = boardH + 'px';
@@ -404,6 +407,7 @@ function selectPiece(p){
 function liftFromBoard(p){
   if (p._onBoard && p._occ){ p._occ.forEach(k=>occupied.delete(k)); p._occ=null; }
   p._onBoard = false;
+  const i = placedStack.indexOf(p); if (i >= 0) placedStack.splice(i, 1);  // keep Revert order correct
 }
 function sendToTray(p){
   p._el.classList.remove('placed');
@@ -434,9 +438,40 @@ function tryPlaceAt(p, ar, ac){
   el.style.left=(ac*cellW)+'px'; el.style.top=(ar*cellH)+'px';
   el.classList.add('placed','pop'); setTimeout(()=>el.classList.remove('pop'),360);
   boardEl.appendChild(el);
+  const si = placedStack.indexOf(p); if (si >= 0) placedStack.splice(si, 1);
+  placedStack.push(p);                                   // track for Revert
   if (selectedPiece === p) selectedPiece = null;
   updateLeft(); checkWin();
   return true;
+}
+
+// Revert: send the most recently placed piece back to the tray (keeps its orientation).
+function undoLast(){
+  if (won || !placedStack.length) return;
+  const p = placedStack[placedStack.length - 1];
+  liftFromBoard(p);                 // frees cells + removes from stack
+  sendToTray(p);
+  updateLeft();
+}
+
+function orientToIdentity(p){
+  const isId = () => p._sub.every(s => s.lr === (s.hr - p._minr) && s.lc === (s.hc - p._minc));
+  for (let f = 0; f < 2; f++){ for (let r = 0; r < 4; r++){ if (isId()) return; rotateCW(p); } flipH(p); }
+}
+
+// Hint: pick an unsolved piece, clear its correct spot if needed, orient it, and place it correctly.
+function hintPlace(){
+  if (won) return;
+  let p = PIECES.find(x => !x._onBoard) || PIECES.find(x => !pieceCorrect(x, x._anchorR, x._anchorC));
+  if (!p) return;
+  if (p._onBoard) liftFromBoard(p);
+  const homeKeys = new Set(p.cells.map(c => key(c[0], c[1])));
+  for (const q of PIECES){                               // free the home cells from any wrong piece
+    if (q !== p && q._onBoard && q._occ && q._occ.some(k => homeKeys.has(k))){ liftFromBoard(q); sendToTray(q); }
+  }
+  orientToIdentity(p);
+  tryPlaceAt(p, p._minr, p._minc);
+  updateLeft();
 }
 
 // Click-to-place: drop on the clicked cell, or on any position where the piece covers that cell.
@@ -577,6 +612,8 @@ document.querySelectorAll('.tsize-btn').forEach(btn => {
 });
 document.getElementById('fh').addEventListener('click', ()=> transformSelected(flipH));
 document.getElementById('fv').addEventListener('click', ()=> transformSelected(flipV));
+document.getElementById('revert').addEventListener('click', undoLast);
+document.getElementById('hint').addEventListener('click', hintPlace);
 
 // Click an empty grid spot with a piece selected -> place it there if it fits.
 boardEl.addEventListener('click', (e)=>{
