@@ -168,8 +168,8 @@ const BASE_COLS = 9, BASE_ROWS = 16;           // finest image grid
 let SCALE = 3;                                  // piece size: 1×=large(3), 2×=medium(2), 3×=small(1)
 let COLS = BASE_COLS, ROWS = BASE_ROWS;         // working (block) grid, derived from SCALE
 function applyScale(){ COLS = Math.floor(BASE_COLS / SCALE); ROWS = Math.floor(BASE_ROWS / SCALE); }
-let TRAY_SCALE = 0.6;                           // tray piece display size (1×/2×/3× tray buttons)
-const TRAY_SIZES = { 1: 0.6, 2: 0.9, 3: 1.2 };  // tray-only display scales
+let TRAY_SCALE = 0.9;                           // tray piece display size (1×/2×/3× tray buttons)
+const TRAY_SIZES = { 1: 0.9, 2: 0.6, 3: 0.4 };  // 1× largest, 2×/3× smaller
 const SCRAMBLE = true;                          // start pieces in a random orientation
 
 // The 12 free pentominoes (one base orientation each).
