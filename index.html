@@ -114,9 +114,9 @@
     <button class="btn" id="reset">Reset</button>
     <button class="btn" id="skip" title="Skip to next level">Skip ⏭</button>
     <span class="scale-group">
-      <button class="btn scale-btn active" data-s="1" title="Small pieces">1×</button>
-      <button class="btn scale-btn" data-s="2" title="Bigger pieces">2×</button>
-      <button class="btn scale-btn" data-s="3" title="Biggest pieces">3×</button>
+      <button class="btn scale-btn active" data-s="3" title="Large pieces">1×</button>
+      <button class="btn scale-btn" data-s="2" title="Medium pieces">2×</button>
+      <button class="btn scale-btn" data-s="1" title="Small pieces">3×</button>
     </span>
   </div>
   <div class="board" id="board"></div>
@@ -158,7 +158,7 @@ const IMG_W = 540, IMG_H = 960;   // all portraits cropped to 9:16
 let IMG = "";                      // current level's image (set in build)
 let level = 0;                     // current level index
 const BASE_COLS = 9, BASE_ROWS = 16;           // finest image grid
-let SCALE = 1;                                  // 1x/2x/3x: each piece-square covers SCALE×SCALE image chunks
+let SCALE = 3;                                  // piece size: 1×=large(3), 2×=medium(2), 3×=small(1)
 let COLS = BASE_COLS, ROWS = BASE_ROWS;         // working (block) grid, derived from SCALE
 function applyScale(){ COLS = Math.floor(BASE_COLS / SCALE); ROWS = Math.floor(BASE_ROWS / SCALE); }
 const TRAY_SCALE = 0.6;                        // tray pieces relative to board-cell size
