@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Pentomino Portrait Puzzle</title>
 <style>
-  * { box-sizing: border-box; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
+  * { box-sizing: border-box; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
   html, body {
     margin: 0; padding: 0; height: 100%;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -66,7 +66,7 @@
   .piece.pop { animation: pop .35s ease; }
   .piece.selected { outline: 2.5px solid #ffd166; outline-offset: 2px; border-radius: 4px; z-index: 50; }
   .pcell {
-    position: absolute; background-repeat: no-repeat; border-radius: 2px;
+    position: absolute; background-repeat: no-repeat; border-radius: 2px; touch-action: none;
     box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.85), inset 0 0 0 2.5px rgba(0,0,0,.25);
   }
 
@@ -590,6 +590,10 @@ boardEl.addEventListener('click', (e)=>{
   tryClickPlace(p, cr, cc);
 });
 window.addEventListener('resize', ()=>{ if (Math.abs(window.innerWidth - lastW) > 40) build(); });
+
+// iOS Safari ignores user-scalable=no — block pinch-zoom (touch-action handles double-tap).
+['gesturestart','gesturechange','gestureend'].forEach(ev =>
+  document.addEventListener(ev, e => e.preventDefault(), { passive: false }));
 
 level = randInt(IMAGES.length);   // start on a random face
 build();
