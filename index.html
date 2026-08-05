@@ -29,7 +29,7 @@
     padding: 5px 11px; border-radius: 999px; transition: background .15s;
   }
   .btn:hover { background: rgba(255,255,255,.14); }
-  header, .tray-label, .statinfo { display: none; }   /* game scene: buttons only, no text */
+  header, .tray-label, .statinfo, .scale-group, .tray-size { display: none !important; }   /* hide text + size buttons */
   .scale-group { display: inline-flex; gap: 4px; }
   .tray-size { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px; }
   .tsize-btn { padding: 5px 10px; }
@@ -109,6 +109,7 @@
     <h1>Pentomino Portrait Puzzle</h1>
     <p>Tap a piece to select, tap again to rotate 90°. Use FH / FV to flip. Drag onto the black slots.</p>
   </header>
+  <div class="board" id="board"></div>
   <div class="status">
     <span class="statinfo">Level <b id="lvl">1</b> · Left <b id="left">0</b></span>
     <button class="btn" id="fh" title="Flip horizontal">FH ⇋</button>
@@ -121,7 +122,6 @@
       <button class="btn scale-btn" data-s="1" title="Small pieces">3×</button>
     </span>
   </div>
-  <div class="board" id="board"></div>
   <div class="tray-label">Remaining pieces</div>
   <div class="tray-size">
     <button class="btn tsize-btn active" data-t="1" title="Small tray pieces">1×</button>
@@ -168,7 +168,7 @@ const BASE_COLS = 9, BASE_ROWS = 16;           // finest image grid
 let SCALE = 3;                                  // piece size: 1×=large(3), 2×=medium(2), 3×=small(1)
 let COLS = BASE_COLS, ROWS = BASE_ROWS;         // working (block) grid, derived from SCALE
 function applyScale(){ COLS = Math.floor(BASE_COLS / SCALE); ROWS = Math.floor(BASE_ROWS / SCALE); }
-let TRAY_SCALE = 0.9;                           // tray piece display size (1×/2×/3× tray buttons)
+let TRAY_SCALE = 0.4;                           // fixed at "3×" (smallest tray pieces)
 const TRAY_SIZES = { 1: 0.9, 2: 0.6, 3: 0.4 };  // 1× largest, 2×/3× smaller
 const SCRAMBLE = true;                          // start pieces in a random orientation
 
