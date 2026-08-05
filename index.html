@@ -29,6 +29,9 @@
     padding: 5px 11px; border-radius: 999px; transition: background .15s;
   }
   .btn:hover { background: rgba(255,255,255,.14); }
+  .scale-group { display: inline-flex; gap: 4px; }
+  .scale-btn { padding: 5px 9px; }
+  .btn.active { background: #ffd166; color: #201700; border-color: #ffd166; font-weight: 700; }
 
   .board {
     position: relative; border-radius: 12px; overflow: hidden;
@@ -109,6 +112,11 @@
     <button class="btn" id="fv" title="Flip vertical">FV ⇕</button>
     <button class="btn" id="reset">Reset</button>
     <button class="btn" id="skip" title="Skip to next level">Skip ⏭</button>
+    <span class="scale-group">
+      <button class="btn scale-btn active" data-s="1" title="Small pieces">1×</button>
+      <button class="btn scale-btn" data-s="2" title="Bigger pieces">2×</button>
+      <button class="btn scale-btn" data-s="3" title="Biggest pieces">3×</button>
+    </span>
   </div>
   <div class="board" id="board"></div>
   <div class="tray-label">Remaining pieces</div>
@@ -148,7 +156,10 @@ const IMAGES = [
 const IMG_W = 540, IMG_H = 960;   // all portraits cropped to 9:16
 let IMG = "";                      // current level's image (set in build)
 let level = 0;                     // current level index
-const COLS = 9, ROWS = 16;                     // 9:16 grid -> SQUARE cells
+const BASE_COLS = 9, BASE_ROWS = 16;           // finest image grid
+let SCALE = 1;                                  // 1x/2x/3x: each piece-square covers SCALE×SCALE image chunks
+let COLS = BASE_COLS, ROWS = BASE_ROWS;         // working (block) grid, derived from SCALE
+function applyScale(){ COLS = Math.floor(BASE_COLS / SCALE); ROWS = Math.floor(BASE_ROWS / SCALE); }
 const TRAY_SCALE = 0.6;                        // tray pieces relative to board-cell size
 const SCRAMBLE = true;                          // start pieces in a random orientation
 
@@ -247,12 +258,24 @@ const key = (r,c) => r+'_'+c;
 function sampleColors(){
   cellColor = null;
   const img = new Image();
+  const S = SCALE, gc = COLS, gr = ROWS;         // capture current scale/grid for this load
   img.onload = () => {
-    const cv = document.createElement('canvas'); cv.width = COLS; cv.height = ROWS;
-    const cx = cv.getContext('2d'); cx.drawImage(img, 0, 0, COLS, ROWS);
-    const d = cx.getImageData(0, 0, COLS, ROWS).data;
+    const cv = document.createElement('canvas'); cv.width = BASE_COLS; cv.height = BASE_ROWS;
+    const cx = cv.getContext('2d'); cx.drawImage(img, 0, 0, BASE_COLS, BASE_ROWS);
+    const d = cx.getImageData(0, 0, BASE_COLS, BASE_ROWS).data;
+    const base = (r,c) => { const i=(r*BASE_COLS+c)*4; return [d[i],d[i+1],d[i+2]]; };
     const arr = [];
-    for (let r=0; r<ROWS; r++){ const row=[]; for (let c=0; c<COLS; c++){ const i=(r*COLS+c)*4; row.push([d[i],d[i+1],d[i+2]]); } arr.push(row); }
+    for (let r=0; r<gr; r++){ const row=[];
+      for (let c=0; c<gc; c++){
+        let R=0,G=0,B=0,n=0;                       // average the SCALE×SCALE block region
+        for (let dr=0; dr<S; dr++) for (let dc=0; dc<S; dc++){
+          const br=r*S+dr, bc=c*S+dc;
+          if (br<BASE_ROWS && bc<BASE_COLS){ const col=base(br,bc); R+=col[0]; G+=col[1]; B+=col[2]; n++; }
+        }
+        row.push([R/n, G/n, B/n]);
+      }
+      arr.push(row);
+    }
     cellColor = arr;
   };
   img.src = IMG;
@@ -268,15 +291,17 @@ function computeSize(){
 }
 
 function tileStyle(el, r, c, cw, ch){
+  // each block shows a SCALE×SCALE chunk: map the full image so one block spans SCALE base cells
   el.style.backgroundImage = "url('"+IMG+"')";
-  el.style.backgroundSize   = (cw*COLS) + "px " + (ch*ROWS) + "px";
+  el.style.backgroundSize   = (cw*BASE_COLS/SCALE) + "px " + (ch*BASE_ROWS/SCALE) + "px";
   el.style.backgroundPosition = (-c*cw) + "px " + (-r*ch) + "px";
 }
 
 function build(){
   IMG = IMAGES[level % IMAGES.length];               // load this level's portrait
   const lvlEl = document.getElementById('lvl'); if (lvlEl) lvlEl.textContent = (level % IMAGES.length) + 1;
-  sampleColors();                                    // grab per-cell colors for win validation
+  applyScale();                                      // set the block grid for the current 1x/2x/3x
+  sampleColors();                                    // grab per-block colors for win validation
   computeSize();
   lastW = window.innerWidth;
   boardEl.innerHTML = ''; trayEl.innerHTML = '';
@@ -285,9 +310,14 @@ function build(){
   boardEl.style.width = boardW + 'px';
   boardEl.style.height = boardH + 'px';
 
+  const cells = COLS * ROWS;
+  const k = cells >= 28 ? (3 + randInt(2)) : Math.max(2, Math.floor(cells / 6));   // fewer pieces on coarse grids
   const centered = randInt(2) === 0;                          // 50% of levels: cluster holes in the center
-  const region = centered ? { r0:4, r1:11, c0:1, c1:7 } : null;
-  PIECES = genPuzzle(3 + randInt(2), region) || genPuzzle(3, region) || genPuzzle(3) || [];  // 3-4 shapes
+  const region = centered ? {
+    r0: Math.floor(ROWS*0.28), r1: Math.ceil(ROWS*0.72)-1,
+    c0: Math.floor(COLS*0.12), c1: Math.ceil(COLS*0.88)-1
+  } : null;
+  PIECES = genPuzzle(k, region) || genPuzzle(k) || genPuzzle(2) || genPuzzle(1) || [];
   PIECES.forEach(p => p.cells.forEach(([r,c]) => holeSet.add(key(r,c))));
 
   for (let r=0; r<ROWS; r++) for (let c=0; c<COLS; c++){
@@ -520,6 +550,13 @@ document.getElementById('reset').addEventListener('click', build);
 function nextLevel(){ level = (level + 1) % IMAGES.length; build(); }
 document.getElementById('again').addEventListener('click', nextLevel);
 document.getElementById('skip').addEventListener('click', nextLevel);
+document.querySelectorAll('.scale-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    SCALE = +btn.dataset.s;
+    document.querySelectorAll('.scale-btn').forEach(b => b.classList.toggle('active', b === btn));
+    build();
+  });
+});
 document.getElementById('fh').addEventListener('click', ()=> transformSelected(flipH));
 document.getElementById('fv').addEventListener('click', ()=> transformSelected(flipV));
 
