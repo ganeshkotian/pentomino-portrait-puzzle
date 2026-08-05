@@ -31,6 +31,8 @@
   .btn:hover { background: rgba(255,255,255,.14); }
   header, .tray-label, .statinfo { display: none; }   /* game scene: buttons only, no text */
   .scale-group { display: inline-flex; gap: 4px; }
+  .tray-size { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px; }
+  .tsize-btn { padding: 5px 10px; }
   .scale-btn { padding: 5px 9px; }
   .btn.active { background: #ffd166; color: #201700; border-color: #ffd166; font-weight: 700; }
 
@@ -55,7 +57,7 @@
     background: rgba(255,255,255,.03); border: 1px dashed rgba(255,255,255,.12);
     border-radius: 12px; flex: 0 1 auto; overflow: auto;
   }
-  .piece { position: relative; cursor: grab; touch-action: none; filter: drop-shadow(0 5px 9px rgba(0,0,0,.5)); }
+  .piece { position: relative; cursor: grab; touch-action: none; flex: 0 0 auto; filter: drop-shadow(0 5px 9px rgba(0,0,0,.5)); }
   .piece:active { cursor: grabbing; }
   .piece.dragging { z-index: 9999; opacity: .9; }
   .piece.fits { filter: drop-shadow(0 0 5px #38e08a) drop-shadow(0 0 9px #38e08a); }
@@ -121,6 +123,11 @@
   </div>
   <div class="board" id="board"></div>
   <div class="tray-label">Remaining pieces</div>
+  <div class="tray-size">
+    <button class="btn tsize-btn active" data-t="1" title="Small tray pieces">1×</button>
+    <button class="btn tsize-btn" data-t="2" title="Medium tray pieces">2×</button>
+    <button class="btn tsize-btn" data-t="3" title="Large tray pieces">3×</button>
+  </div>
   <div class="tray" id="tray"></div>
 </div>
 
@@ -161,7 +168,8 @@ const BASE_COLS = 9, BASE_ROWS = 16;           // finest image grid
 let SCALE = 3;                                  // piece size: 1×=large(3), 2×=medium(2), 3×=small(1)
 let COLS = BASE_COLS, ROWS = BASE_ROWS;         // working (block) grid, derived from SCALE
 function applyScale(){ COLS = Math.floor(BASE_COLS / SCALE); ROWS = Math.floor(BASE_ROWS / SCALE); }
-const TRAY_SCALE = 0.6;                        // tray pieces relative to board-cell size
+let TRAY_SCALE = 0.6;                           // tray piece display size (1×/2×/3× tray buttons)
+const TRAY_SIZES = { 1: 0.6, 2: 0.9, 3: 1.2 };  // tray-only display scales
 const SCRAMBLE = true;                          // start pieces in a random orientation
 
 // The 12 free pentominoes (one base orientation each).
@@ -556,6 +564,15 @@ document.querySelectorAll('.scale-btn').forEach(btn => {
     SCALE = +btn.dataset.s;
     document.querySelectorAll('.scale-btn').forEach(b => b.classList.toggle('active', b === btn));
     build();
+  });
+});
+
+// Tray-only size: resize the pieces sitting in the tray, board/puzzle unchanged.
+document.querySelectorAll('.tsize-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    TRAY_SCALE = TRAY_SIZES[+btn.dataset.t];
+    document.querySelectorAll('.tsize-btn').forEach(b => b.classList.toggle('active', b === btn));
+    PIECES.forEach(p => { if (!p._onBoard) layoutPiece(p, cellW*TRAY_SCALE, cellH*TRAY_SCALE); });
   });
 });
 document.getElementById('fh').addEventListener('click', ()=> transformSelected(flipH));
