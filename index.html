@@ -33,6 +33,13 @@
   .scale-group { display: inline-flex; gap: 4px; }
   .tray-size { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px; }
   .tsize-btn { padding: 5px 10px; }
+  .nextbar { display: none; justify-content: center; padding: 12px 0 4px; }
+  .nextbar.show { display: flex; }
+  .nextbtn {
+    appearance: none; border: none; cursor: pointer; background: #ffd166; color: #201700;
+    font-weight: 700; font-size: 15px; letter-spacing: .3px; padding: 11px 32px; border-radius: 999px;
+    box-shadow: 0 8px 20px rgba(0,0,0,.45); animation: cardrise .5s ease;
+  }
   .scale-btn { padding: 5px 9px; }
   .btn.active { background: #ffd166; color: #201700; border-color: #ffd166; font-weight: 700; }
 
@@ -110,7 +117,8 @@
     <p>Tap a piece to select, tap again to rotate 90°. Use FH / FV to flip. Drag onto the black slots.</p>
   </header>
   <div class="board" id="board"></div>
-  <div class="status">
+  <div class="nextbar" id="nextbar"><button class="nextbtn" id="nextbtn">Next →</button></div>
+  <div class="status" id="status">
     <span class="statinfo">Level <b id="lvl">1</b> · Left <b id="left">0</b></span>
     <button class="btn" id="fh" title="Flip horizontal">FH ⇋</button>
     <button class="btn" id="fv" title="Flip vertical">FV ⇕</button>
@@ -133,13 +141,6 @@
   <div class="tray" id="tray"></div>
 </div>
 
-<div class="win" id="win">
-  <div class="card">
-    <h2>Complete! ✨</h2>
-    <p>You finished the portrait.</p>
-    <button class="btn" id="again">Next face →</button>
-  </div>
-</div>
 
 <script>
 const IMAGES = [
@@ -340,7 +341,8 @@ let PIECES = [];
 const boardEl = document.getElementById('board');
 const trayEl  = document.getElementById('tray');
 const leftEl  = document.getElementById('left');
-const winEl   = document.getElementById('win');
+const statusEl = document.getElementById('status');
+const nextbarEl = document.getElementById('nextbar');
 
 let cellW, cellH, boardW, boardH;
 let cellMap = {}, holeSet = new Set(), occupied = new Set(), lastW = 0;
@@ -429,7 +431,8 @@ function build(){
   }
   PIECES.forEach(buildPiece);
   updateLeft();
-  winEl.classList.remove('show');
+  nextbarEl.classList.remove('show');       // hide Next, show gameplay buttons again
+  statusEl.style.display = '';
 }
 
 function buildPiece(p){
@@ -647,7 +650,10 @@ function celebrate(){
   const ends = launchConfetti(120);                      // seconds each confetti finishes
   ends.sort((a,b)=> a-b);
   const p90 = ends[Math.floor(ends.length * 0.9)] || 3;  // time when ~90% have fallen away
-  setTimeout(()=> winEl.classList.add('show'), p90 * 1000);
+  setTimeout(()=> {
+    statusEl.style.display = 'none';                     // hide all gameplay buttons
+    nextbarEl.classList.add('show');                     // show inline Next below the image
+  }, p90 * 1000);
 }
 
 function launchConfetti(n){
@@ -677,7 +683,7 @@ function launchConfetti(n){
 
 document.getElementById('reset').addEventListener('click', build);
 function nextLevel(){ level = (level + 1) % IMAGES.length; build(); }
-document.getElementById('again').addEventListener('click', nextLevel);
+document.getElementById('nextbtn').addEventListener('click', nextLevel);
 document.getElementById('skip').addEventListener('click', nextLevel);
 document.querySelectorAll('.scale-btn').forEach(btn => {
   btn.addEventListener('click', () => {
